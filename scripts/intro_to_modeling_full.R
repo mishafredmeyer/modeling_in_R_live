@@ -11,6 +11,10 @@
 ## 3.3 Logistic Regression
 
 # Install necessary packages (for the entire script)
+install.packages("tidyverse")
+install.packages("mgcv")
+install.packages("ploynom")
+install.packages("hexbin")
 
 library(tidyverse)
 library(mgcv)
