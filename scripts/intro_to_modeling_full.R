@@ -122,7 +122,20 @@ ggplot(data = bike_linear_data,
 ## the new dataset. 
 ## Challenge Number 2b: Plot those new predictions.  
 
+prediction_data <- data.frame(feeling_temperature = seq(from = 0,
+                                                        to = 50,
+                                                        by = 0.25))
+head(prediction_data)
 
+prediction_data$predicted_cnt <- predict(object = linear_model,
+                                         newdata = prediction_data)
+
+ggplot() +
+  geom_point(data = bike_linear_data, aes(feeling_temperature, 
+                                          cnt)) +
+  geom_point(data = prediction_data, aes(feeling_temperature, 
+                                         predicted_cnt),
+             shape = 18, color = "blue")
 
 # 2. Multiple Linear Regression -------------------------------------------
 
@@ -130,14 +143,22 @@ ggplot(data = bike_linear_data,
 
 # Create a new dataset for multiple linear regression 
 # with continuous variables. 
+multiple_bike_data <- bike_data %>%
+  mutate(feeling_temperature = atemp * 50,
+         humidity = hum * 100,
+         windiness = windspeed * 67) %>%
+  select(feeling_temperature, humidity, windiness, cnt)
 
+head(multiple_bike_data)
 
 # First make a model where interactions are considered. 
+multiple_linear_model <- lm(formula = cnt ~ feeling_temperature * humidity * windiness,
+                            data = multiple_bike_data)
 
-
+summary(multiple_linear_model)
 
 # Assess the pairs plot for cross-correlations
-
+pairs(multiple_bike_data[ , 1:3])
 
 # Create a function to put correlation value in the upper panel.
 # This function can be found in the documentation for pairs.
@@ -154,15 +175,26 @@ panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...)
 
 # Rerun pairs with upper panel showing correlation values.
 
+pairs(multiple_bike_data[ , 1:3], upper.panel = panel.cor)
 
 # Second make a model where interactions are NOT considered. 
+multiple_linear_model_no_inter <- lm(formula =  cnt ~ feeling_temperature + humidity + windiness,
+                                     data = multiple_bike_data)
 
-
+summary(multiple_linear_model_no_inter)
 # Calculate the AIC of each linear model
 # i.e., all interactions vs no interactions
 
+AIC(multiple_linear_model)
+AIC(multiple_linear_model_no_inter)
 
-## Challenge Number 3
+## Challenge Number 3a: Make a model that considers feeling_temperature,
+## humidity, and the interaction of humidity and windiness on cnt
+
+multiple_linear_model_spec_inter <- lm(formula = cnt ~ feeling_temperature + humidity + humidity:windiness,
+                                       data = multiple_bike_data)
+
+summary(multiple_linear_model_spec_inter)
 
 # Mutliple linear regression with continuous and categorical predictors
 
@@ -183,8 +215,10 @@ summary(mixed_bike_data)
 
 # Build the model
 
+mixed_type_model <- lm(cnt ~ feeling_temperature * humidity * windiness * weather_type,
+                       data = mixed_bike_data)
 
-
+summary(mixed_type_model)
 # 3. Non-Linear Modeling --------------------------------------------------
 
 
@@ -197,11 +231,35 @@ bike_nonlinear_data <- bike_data %>%
 
 # Remind ourselves what these data looked like
 
+ggplot(bike_nonlinear_data, aes(feeling_temperature, cnt)) +
+  geom_point()
 
 # Build the model
+polynomial_bike_model <- lm(cnt ~ poly(feeling_temperature, degree = 3),
+                            data = bike_nonlinear_data)
 
+polynomial_bike_model <- lm(cnt ~ I(feeling_temperature^3),
+                            data = bike_nonlinear_data)
+
+summary(polynomial_bike_model)
 # To build a polynomial equation without second and first order 
 # terms, followup this workflow:
+
+
+prediction_data <- data.frame(feeling_temperature = seq(from = 0, to = 45, by = 0.25))
+
+prediction_data$predicted_cnt <- predict(object = polynomial_bike_model,
+                                         newdata = prediction_data)
+
+
+ggplot() +
+  geom_point(data = bike_data, mapping = aes(atemp*50, (cnt))) +
+  geom_point(data = prediction_data, mapping = aes(feeling_temperature, 
+                                                   predicted_cnt),
+             shape = 18, color = "blue") +
+  xlab("Feeling Temperature") +
+  ylab("Total bikes rented") +
+  theme_minimal()
 
 # Build the model
 
@@ -216,7 +274,13 @@ bike_nonlinear_data <- bike_data %>%
 # where gamma closer to zero is very wiggly, and gamma greater than 1
 # less wiggly. 
 
+bike_gam_model <- gam(cnt ~ s(feeling_temperature),
+                      data = bike_nonlinear_data,
+                      method = "REML", gamma = 10)
 
+summary(bike_gam_model)
+
+plot(bike_gam_model)
 
 # 3.3 Logistic Regresssion ------------------------------------------------
 
@@ -235,4 +299,24 @@ bike_data %>%
 
 # Build the model 
 
+logistic_model <- glm(formula = workingday ~ registered, 
+                      data = bike_data,
+                      family = binomial())
+
+summary(logistic_model)
+
 ## Challenge 4
+
+prediction_data <- data.frame(registered = seq(from = 0, to = 7000, by = 10))
+
+prediction_data$predicted_cnt <- predict(object = logistic_model,
+                                         newdata = prediction_data, 
+                                         type = "response")
+
+ggplot() +
+  geom_point(data = bike_data, mapping = aes(registered, (workingday))) +
+  geom_point(data = prediction_data, mapping = aes(registered, 
+                                                   predicted_cnt),
+             shape = 18) +
+  xlab("Is it is a working day?") +
+  ylab("Registered bike reservations")
