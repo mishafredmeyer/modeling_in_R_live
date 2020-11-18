@@ -19,6 +19,7 @@ install.packages("hexbin")
 library(tidyverse)
 library(mgcv)
 library(polynom)
+library(hexbin)
 
 # Load and inspect the data
 
@@ -41,42 +42,86 @@ bike_linear_data <- bike_data %>%
   select(feeling_temperature, cnt)
 
 # Build a linear model
-
+# Count = b1 * feeling_temperature + alpha + error
+# y = mx + b 
+linear_model <- lm(formula = cnt ~ feeling_temperature,
+                   data = bike_linear_data)
 
 # Assess the model
-
+summary(linear_model)
 
 # Assess model object structure
-
+str(linear_model)
 
 # Extract R-squared
-
+r_squared <- summary(linear_model)$r.squared
 
 # Extract p-value
-
+p_value <- summary(linear_model)$coefficients[2, 4]
 
 # Extract slope
-
+slope <- summary(linear_model)$coefficients[2, 1]
 
 # Extract y-intercept
+y_intercept <- summary(linear_model)$coefficients[1, 1]
 
-# Challenge Number 1
+## Challenge Number 1: Knowing what we've learned, how would you
+## 1. Extract model residuals and 
+## 2. Assess the residuals' distribution? 
+## Analysis of choice, but assess the residuals.
 
+residuals <- summary(linear_model)$residuals
+
+challenge1 <- bike_linear_data %>%
+  mutate(residuals)
+
+ggplot(challenge1, aes(feeling_temperature, residuals)) +
+  geom_point() +
+  xlab("Feeling Temperature") +
+  ylab("Residuals")
+
+hist(linear_model$residuals)
 
 # Visualize residual deviation from the modeled predictions 3 ways
 
 # 1. Visualize model and points 
-
+ggplot(data = bike_linear_data,
+       mapping = aes(x = feeling_temperature, y = cnt)) +
+  geom_point(alpha = 0.33) +
+  geom_smooth(method = "lm", se = TRUE) +
+  theme_minimal()
 
 # 2. Group points into hexbins
-
+ggplot(data = bike_linear_data,
+       mapping = aes(x = feeling_temperature, y = cnt)) +
+  geom_hex(bins = 10) +
+  geom_smooth(method = "lm", se = TRUE) +
+  scale_fill_viridis_c(option = "plasma", name = "Number of\nPoints") +
+  theme_minimal()
 
 # 3. Lines and color points for residuals. 
 # We will build this plot incrementally.
+bike_linear_data$predicted_cnt <- predict(linear_model)
 
+bike_linear_data$residuals <- residuals(linear_model)
 
+head(bike_linear_data)
 
-## Challenge Number 2
+ggplot(data = bike_linear_data,
+       mapping = aes(x = feeling_temperature, y = cnt)) +
+  geom_smooth(method = "lm", se = TRUE) +
+  geom_segment(mapping = aes(xend = feeling_temperature,
+                             yend = predicted_cnt),
+               alpha = 0.2) +
+  geom_point(mapping = aes(color = abs(residuals))) +
+  scale_color_viridis_c(option = "plasma", name = "Residual\nCount") +
+  theme_minimal()
+  
+## Challenge Number 2a: Create a new data frame of temperatures
+## from 0 to 50 with increments of 0.25, and predict values for 
+## the new dataset. 
+## Challenge Number 2b: Plot those new predictions.  
+
 
 
 # 2. Multiple Linear Regression -------------------------------------------
